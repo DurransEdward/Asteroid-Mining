@@ -1,23 +1,63 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"math"
 	"math/rand"
+
+	_ "github.com/lib/pq"
 )
 
 const numberAsteroids int = 10
 
 func main() {
-	startingCoordinates := [3]float64{0, 0, 0}	
+
+	// /\/\/\/\/\/\/\/\/\/\ Setting up SQL stuff /\/\/\/\/\/\/\/\/\/\
+
+	var db *sql.DB // Declare pointer to database object
+	var err error
+
+	db, err = sql.Open("postgres", "postgres://postgres:fvcszfs-22rcaXX@localhost:5432/test?sslmode=disable") // Connect db to the required database
+	if err != nil {
+		fmt.Println("Something is broken... 1")
+	}
+	defer db.Close()
+
+	// /\/\/\/\/\/\/\/\/\/\ Creating arrays for the starting coordinates and randomly generating asteroid coordinates /\/\/\/\/\/\/\/\/\/\
+
+	startingCoordinates := [3]float64{0, 0, 0}
 
 	var asteroidCoordinates [numberAsteroids + 1][3]float64 // The first row is all zeros (to represent the starting location)
-	
+
 	/* This for loop will randomly generate the asteroid coordinates */
-	
-	for i := 1; i <= numberAsteroids; i++ {
-		for j := 0; j < 3; j++ {
-			asteroidCoordinates[i][j] = rand.Float64()*2000 - 1000
+
+	for a := 1; a <= numberAsteroids; a++ {
+		for i := 0; i < 3; i++ {
+			asteroidCoordinates[a][i] = rand.Float64()*2000 - 1000
+		}
+	}
+
+	// /\/\/\/\/\/\/\/\/\/\ Insert starting coordinates and asteroid locations into SQL database /\/\/\/\/\/\/\/\/\/\
+
+	_, err = db.Exec("INSERT INTO startingCoordinatesAndAsteroidCoordinates (id, x, y, z) VALUES (0,0,0,0);")
+	if err != nil {
+		fmt.Println("Something is broken... 2")
+	}
+
+	// /\/\/\/\/\/\/\/\/\/\ Insert asteroid coordinates and asteroid locations into SQL database /\/\/\/\/\/\/\/\/\/\
+
+	var stmt *sql.Stmt
+
+	stmt, err = db.Prepare("INSERT INTO startingCoordinatesAndAsteroidCoordinates(id, x, y, z) VALUES($1, $2, $3, $4)")
+	if err != nil {
+		fmt.Println("Something is broken... 3")
+	}
+
+	for a := 1; a <= 10; a++ {
+		_, err = stmt.Exec(a, asteroidCoordinates[a][0], asteroidCoordinates[a][1], asteroidCoordinates[a][2])
+		if err != nil {
+			fmt.Println("Something is broken... 4", err)
 		}
 	}
 
@@ -121,37 +161,6 @@ Function Returns:
 func pythagThm3D(x, y, z float64) float64 {
 	return math.Sqrt(math.Pow(x, 2) + math.Pow(y, 2) + math.Pow(z, 2))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 /*
 FUTURE DEVELOPMENT. DO NOT READ!
