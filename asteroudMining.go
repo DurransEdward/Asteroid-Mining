@@ -5,25 +5,16 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"context"
+	"strconv"
 
+	"github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 )
 
 const numberAsteroids int = 10
 
 func main() {
-
-	// /\/\/\/\/\/\/\/\/\/\ Setting up SQL stuff /\/\/\/\/\/\/\/\/\/\
-
-	var db *sql.DB // Declare pointer to database object
-	var err error
-
-	db, err = sql.Open("postgres", "postgres://postgres:fvcszfs-22rcaXX@localhost:5432/test?sslmode=disable") // Connect db to the required database
-	if err != nil {
-		fmt.Println("Something is broken... 1")
-	}
-	defer db.Close()
-
 	// /\/\/\/\/\/\/\/\/\/\ Creating arrays for the starting coordinates and randomly generating asteroid coordinates /\/\/\/\/\/\/\/\/\/\
 
 	startingCoordinates := [3]float64{0, 0, 0}
@@ -38,14 +29,21 @@ func main() {
 		}
 	}
 
-	// /\/\/\/\/\/\/\/\/\/\ Insert starting coordinates and asteroid locations into SQL database /\/\/\/\/\/\/\/\/\/\
+	// /\/\/\/\/\/\/\/\/\/\ Insert starting coordinates and asteroid coordinates into SQL database /\/\/\/\/\/\/\/\/\/\
+
+	var db *sql.DB // Declare pointer to database object
+	var err error
+
+	db, err = sql.Open("postgres", "postgres://postgres:fvcszfs-22rcaXX@localhost:5432/test?sslmode=disable") // Connect db to the required database
+	if err != nil {
+		fmt.Println("Something is broken... 1")
+	}
+	defer db.Close()
 
 	_, err = db.Exec("INSERT INTO startingCoordinatesAndAsteroidCoordinates (id, x, y, z) VALUES (0,0,0,0);")
 	if err != nil {
 		fmt.Println("Something is broken... 2")
 	}
-
-	// /\/\/\/\/\/\/\/\/\/\ Insert asteroid coordinates and asteroid locations into SQL database /\/\/\/\/\/\/\/\/\/\
 
 	var stmt *sql.Stmt
 
@@ -59,6 +57,39 @@ func main() {
 		if err != nil {
 			fmt.Println("Something is broken... 4", err)
 		}
+	}
+
+	// /\/\/\/\/\/\/\/\/\/\ Insert starting coordinates and asteroid coordinates into Redis database /\/\/\/\/\/\/\/\/\/\
+
+	var ctx = context.Background()
+	var rdb *redis.Client
+
+	var connectionOptions = redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	}
+
+	rdb = redis.NewClient(&connectionOptions)
+
+	rdb.Set(ctx, "starting_x_coordinate", 0, 0) // Enter starting coordinates into Redis database
+	rdb.Set(ctx, "starting_y_coordinate", 0, 0) // Enter starting coordinates into Redis database
+	rdb.Set(ctx, "starting_z_coordinate", 0, 0) // Enter starting coordinates into Redis database
+
+	var keyString string
+	
+	for a := 1; a <= numberAsteroids; a++ {
+		for i := 0; i <= 2; i++{
+			switch i {
+				case 1: keyString = "asteroid_" + strconv.Itoa(a) + "_x_coordinate"
+				
+				case 2: keyString = "asteroid_" + strconv.Itoa(a) + "_y_coordinate"
+
+				case 3: keyString = "asteroid_" + strconv.Itoa(a) + "_z_coordinate"
+			}
+
+			rdb.Set(ctx, keyString, asteroidCoordinates[a][i], 0)
+		}		
 	}
 
 	fmt.Println("Asterod coordinates:", "\n\n", asteroidCoordinates, "\n\n")
