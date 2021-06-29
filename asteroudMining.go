@@ -111,7 +111,7 @@ Function Returns:
 
 1. An array variable called pathThroughAsteroids which records the path the spaceship takes through the asteroids. For example, if asteroid i is the jth
 asteroid visited by the spaceship, then pathThroughAsteroids[j] = i. Since the spaceship starts at location 0, we set pathThroughAsteroids[0] = 0 by default.
-The method used to find this path is described in section 1 of the Self-Assigned Go/SQL/Github Asteroid Mining Task Description document.
+The method used to find this path is described in the README file.
 */
 func pathFinderMethod1(startingCoordinates [3]float64, asteroidCoordinates [numberAsteroids + 1][3]float64) [numberAsteroids + 1]int {
 	currentLocation := 0 // Start at starting location which has id = 0
